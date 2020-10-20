@@ -1,5 +1,8 @@
 import React, { Component } from 'react'
 import { PropTypes, Link, StoreStateRouterLocationURI, connect } from '../../family'
+import AwesomeDebouncePromise from 'awesome-debounce-promise'
+import { TextField, InputAdornment } from '@material-ui/core'
+import Search from '@material-ui/icons/Search'
 
 class Highlight extends Component<any, any> {
   static replace = (clip: any, seed: any) => {
@@ -22,12 +25,13 @@ class DropdownMenuBase extends Component<any, any> {
   static contextTypes = {
     store: PropTypes.object,
   }
-  static filter = (respository: any, seed: any) => {
+  static filter = (respository: any, seed: string) => {
     const nextRespository = { ...respository, modules: [] }
     let counter = 0
+    seed = seed.toLowerCase()
     respository.modules.forEach((mod: any) => {
       const nextModule = { ...mod, interfaces: [] }
-      let matchModule = nextModule.name.indexOf(seed) !== -1
+      let matchModule = nextModule.name.toLowerCase().indexOf(seed) !== -1
       if (matchModule) {
         counter++
         nextRespository.modules.push(nextModule)
@@ -35,7 +39,11 @@ class DropdownMenuBase extends Component<any, any> {
 
       mod.interfaces.forEach((itf: any) => {
         const nextInterface = { ...itf, properties: [] }
-        let matchInterface = nextInterface.name.indexOf(seed) !== -1 || nextInterface.url.indexOf(seed) !== -1 || nextInterface.method === seed
+        const matchInterface =
+          nextInterface.name.toLowerCase().indexOf(seed) !== -1 ||
+          nextInterface.url.toLowerCase().indexOf(seed) !== -1 ||
+          nextInterface.method === seed ||
+          nextInterface.id === +seed
         if (matchInterface) {
           counter++
           if (!matchModule) {
@@ -45,22 +53,22 @@ class DropdownMenuBase extends Component<any, any> {
           nextModule.interfaces.push(nextInterface)
         }
 
-        itf.properties.forEach((property: any) => {
-          const nextProperty = { ...property }
-          const matchProperty = nextProperty.name.indexOf(seed) !== -1
-          if (matchProperty) {
-            counter++
-            if (!matchModule) {
-              matchModule = true
-              nextRespository.modules.push(nextModule)
-            }
-            if (!matchInterface) {
-              matchInterface = true
-              nextModule.interfaces.push(nextInterface)
-            }
-            nextInterface.properties.push(nextProperty)
-          }
-        })
+        // itf.properties.forEach((property: any) => {
+        //   const nextProperty = { ...property }
+        //   const matchProperty = nextProperty.name.indexOf(seed) !== -1
+        //   if (matchProperty) {
+        //     counter++
+        //     if (!matchModule) {
+        //       matchModule = true
+        //       nextRespository.modules.push(nextModule)
+        //     }
+        //     if (!matchInterface) {
+        //       matchInterface = true
+        //       nextModule.interfaces.push(nextInterface)
+        //     }
+        //     nextInterface.properties.push(nextProperty)
+        //   }
+        // })
       })
     })
     return { nextRespository, counter }
@@ -115,28 +123,49 @@ class DropdownMenuBase extends Component<any, any> {
 
 const DropdownMenu = connect((state: any) => ({ router: state.router }))(DropdownMenuBase)
 
+interface IState {
+  seed: string
+  result: string
+}
+
 // TODO 2.2 自动隐藏，高阶组件
-class RepositorySearcher extends Component<any, any> {
+class RepositorySearcher extends Component<any, IState> {
+  debouncedInput = AwesomeDebouncePromise((val: string) => this.setState({ result: val }), 300)
   constructor(props: any) {
     super(props)
-    this.state = { seed: '' }
+    this.state = { seed: '', result: '' }
+    this.debouncedInput = this.debouncedInput.bind(this)
   }
   render() {
     const { repository } = this.props
+    const { seed, result } = this.state
+
     return (
       <div className="RepositorySearcher dropdown">
-        <input
-          value={this.state.seed}
-          onChange={e => { this.setState({ seed: e.target.value }) }}
+        <TextField
+          value={seed}
+          onChange={e => {
+            const val = e.target.value
+            this.setState({ seed: val })
+            this.debouncedInput(val)
+          }}
+          style={{ backgroundColor: '#fafbfc', marginRight: 12 }}
           className="dropdown-input form-control"
-          placeholder="工作区搜索"
+          placeholder="检索名称或ID"
+          InputProps={{
+            endAdornment: (
+              <InputAdornment position="end">
+                <Search />
+              </InputAdornment>
+            ),
+          }}
         />
-        {this.state.seed && <DropdownMenu repository={repository} seed={this.state.seed} onSelect={this.clearSeed} />}
+        {result && <DropdownMenu repository={repository} seed={result} onSelect={this.clearSeed} />}
       </div>
     )
   }
   clearSeed = () => {
-    this.setState({ seed: '' })
+    this.setState({ seed: '', result: '' })
   }
 }
 

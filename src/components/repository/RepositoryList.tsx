@@ -12,13 +12,13 @@ class RepositoryList extends Component<any, any> {
     const { name, repositories, editor } = this.props
     if (!repositories.length) {
       return name
-        ? <div className="fontsize-14 text-center p40">没有找到匹配 <strong>{name}</strong> 的仓库。</div>
-        : <div className="fontsize-14 text-center p40">没有数据。</div>
+        ? <div className="fontsize-20 text-center p50">没有找到匹配 <strong>{name}</strong> 的仓库</div>
+        : <div className="fontsize-20 text-center p50">没有数据</div>
     }
     return (
       <div className="RepositoryList row">
         {repositories.map((repository: any) =>
-          <div key={repository.id} className="col-12 col-sm-6 col-md-6 col-lg-4 col-xl-3">
+          <div key={repository.id} >
             <Repository repository={repository} editor={editor} />
           </div>
         )}

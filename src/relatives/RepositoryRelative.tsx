@@ -6,6 +6,7 @@ import * as ModuleAction from '../actions/module'
 import * as ModuleEffects from './effects/module'
 import * as RepositoryAction from '../actions/repository'
 import * as RepositoryEffects from './effects/repository'
+import _ from 'lodash'
 export default {
   reducers: {
     repository(
@@ -51,7 +52,9 @@ export default {
               modules: modules.map((mod: any) => ({
                 ...mod,
                 interfaces: mod.interfaces.map((itf: any) => {
-                  if (itf.id !== itfId) { return itf }
+                  if (itf.id !== itfId) {
+                    return itf
+                  }
                   return {
                     ...itf,
                     lockerId: locker.id,
@@ -62,6 +65,28 @@ export default {
               })),
             },
           }
+        case 'INTERFACE_FETCH_SUCCEEDED': {
+          modules = state.data.modules
+          const fetchedItf = _.omit(action.payload, ['requestProperties', 'responseProperties'])
+          return {
+            ...state,
+            data: {
+              ...state.data,
+              modules: modules.map((mod: any) => ({
+                ...mod,
+                interfaces: mod.interfaces.map((itf: any) => {
+                  if (itf.id !== fetchedItf.id) {
+                    return itf
+                  }
+                  return {
+                    ...itf,
+                    ...fetchedItf,
+                  }
+                }),
+              })),
+            },
+          }
+        }
         case InterfaceAction.unlockInterfaceSucceeded(undefined).type:
           modules = state.data.modules
           itfId = action.payload.itfId
@@ -72,7 +97,9 @@ export default {
               modules: modules.map((mod: any) => ({
                 ...mod,
                 interfaces: mod.interfaces.map((itf: any) => {
-                  if (itf.id !== itfId) { return itf }
+                  if (itf.id !== itfId) {
+                    return itf
+                  }
                   return {
                     ...itf,
                     lockerId: null,
@@ -94,7 +121,9 @@ export default {
               modules: modules.map((mod: any) => ({
                 ...mod,
                 interfaces: mod.interfaces.map((itf: any) => {
-                  if (itf.id !== itfId) { return itf }
+                  if (itf.id !== itfId) {
+                    return itf
+                  }
                   return {
                     ...itf,
                     properties,
@@ -114,7 +143,9 @@ export default {
               modules: modules.map((mod: any) => ({
                 ...mod,
                 interfaces: mod.interfaces.map((x: any) => {
-                  if (x.id !== itf.id) { return x }
+                  if (x.id !== itf.id) {
+                    return x
+                  }
                   return {
                     ...itf,
                     locker: x.locker,
@@ -147,10 +178,10 @@ export default {
               modules: modules.map((mod: any) =>
                 mod.id === itf.moduleId
                   ? {
-                    ...mod,
-                    interfaces: [...mod.interfaces, itf],
-                  }
-                  : mod
+                      ...mod,
+                      interfaces: [...mod.interfaces, itf],
+                    }
+                  : mod,
               ),
             },
           }
@@ -164,14 +195,56 @@ export default {
               modules: modules.map((x: any) =>
                 x.id === mod.id
                   ? {
-                    ...x,
-                    name: mod.name,
-                    description: mod.description,
-                  }
-                  : x
+                      ...x,
+                      name: mod.name,
+                      description: mod.description,
+                    }
+                  : x,
               ),
             },
           }
+        case 'INTERFACE_LIST_SORT_SUCCEEDED': {
+          const modules = state.data.modules
+          const iftIds = action.ids
+          const itfIdsMap: any = {}
+          iftIds.forEach((id: number, index: number) => {
+            itfIdsMap[id] = index
+          })
+          const moduleId = action.moduleId
+          return {
+            ...state,
+            data: {
+              ...state.data,
+              modules: modules.map((mod: any) =>
+                mod.id === moduleId
+                  ? {
+                      ...mod,
+                      interfaces: [...mod.interfaces].sort(
+                        (a: any, b: any) => itfIdsMap[a.id] - itfIdsMap[b.id],
+                      ),
+                    }
+                  : mod,
+              ),
+            },
+          }
+        }
+        case 'MODULE_LIST_SORT_SUCCEEDED': {
+          const modules = state.data.modules
+          const moduleIds = action.ids
+          const moduleIdsMap: any = {}
+          moduleIds.forEach((id: number, index: number) => {
+            moduleIdsMap[id] = index
+          })
+          return {
+            ...state,
+            data: {
+              ...state.data,
+              modules: [...modules].sort(
+                (a: any, b: any) => moduleIdsMap[a.id] - moduleIdsMap[b.id],
+              ),
+            },
+          }
+        }
         default:
           return state
       }
@@ -363,38 +436,12 @@ export default {
           return state
       }
     },
-    foreign(state: any = null, action: any) {
+    defaultVals(state: any = [], action: any) {
       switch (action.type) {
-        case 'FOREIGN_INTERFACE_FETCH':
-          return {
-            ...state,
-            [action.itf ? action.id + '_' + action.itf : action.id]: 'pending',
-          }
-        case 'FOREIGN_INTERFACE_FETCH_SUCCEEDED':
-          return {
-            ...state,
-            [action.data.interfaceId
-              ? action.data.repositoryId + '_' + action.data.interfaceId
-              : action.data.repositoryId]: action.data,
-          }
-        case 'ADD_FOREIGN_ROOM_CASE':
-          return {
-            ...state,
-            ['+' + action.id + '_' + action.itf]: 'pending',
-          }
-        case 'ADD_FOREIGN_ROOM_CASE_SUCCEEDED':
-          return {
-            ...state,
-            ['+' + action.id + '_' + action.itf]: 'success',
-          }
-        case 'ADD_FOREIGN_ROOM_CASE_FAILED':
-          return {
-            ...state,
-            ['+' + action.id + '_' + action.itf]: 'failed',
-          }
-        default:
-          return state
+        case 'DEFAULT_VALS_SUCCEEDED':
+          return action.payload.data
       }
+      return state
     },
   },
   sagas: {
@@ -406,32 +453,57 @@ export default {
       RepositoryEffects.updateRepository,
     [RepositoryAction.fetchRepository({ id: undefined, repository: undefined })
       .type]: RepositoryEffects.fetchRepository,
+    REPOSITORY_LOCATION_CHANGE:
+      RepositoryEffects.handleRepositoryLocationChange,
+    REPOSITORY_REFRESH:
+      RepositoryEffects.refreshRepository,
     [RepositoryAction.fetchRepositoryCount().type]:
       RepositoryEffects.fetchRepositoryCount,
     [RepositoryAction.fetchRepositoryList().type]:
       RepositoryEffects.fetchRepositoryList,
     [RepositoryAction.importRepository(undefined, undefined).type]:
       RepositoryEffects.importRepository,
+    [RepositoryAction.importSwaggerRepository(undefined, undefined).type]:
+      RepositoryEffects.importSwaggerRepository,
     [RepositoryAction.fetchOwnedRepositoryList().type]:
       RepositoryEffects.fetchOwnedRepositoryList,
     [RepositoryAction.fetchJoinedRepositoryList().type]:
       RepositoryEffects.fetchJoinedRepositoryList,
+    [RepositoryAction.fetchDefaultVals(0).type]:
+      RepositoryEffects.fetchDefaultVals,
+    [RepositoryAction.updateDefaultVals(0, []).type]:
+      RepositoryEffects.updateDefaultVals,
     [ModuleAction.sortModuleList(undefined, undefined).type]:
       ModuleEffects.sortModuleList,
     [InterfaceAction.fetchInterfaceCount().type]:
       InterfaceEffects.fetchInterfaceCount,
-    [InterfaceAction.sortInterfaceList(undefined, undefined).type]:
+    INTERFACE_LIST_SORT:
       InterfaceEffects.sortInterfaceList,
     [PropertyAction.sortPropertyList(undefined, undefined).type]:
       PropertyEffects.sortPropertyList,
   },
   listeners: {
-    '/repository': [RepositoryAction.fetchOwnedRepositoryList, RepositoryAction.fetchJoinedRepositoryList],
-    '/repository/joined': [RepositoryAction.fetchOwnedRepositoryList, RepositoryAction.fetchJoinedRepositoryList],
+    '/repository': [
+      RepositoryAction.fetchOwnedRepositoryList,
+      RepositoryAction.fetchJoinedRepositoryList,
+    ],
+    '/repository/joined': [
+      RepositoryAction.fetchOwnedRepositoryList,
+      RepositoryAction.fetchJoinedRepositoryList,
+    ],
+    '/repository/editor': [
+      // REPOSITORY_LOCATION_CHANGE 判断了如果是当前 repo 的模块或接口切换就不重新获取
+      // 如果 repo 的 id 发生变化再进行 repo 的重新拉取
+      RepositoryAction.repositoryLocationChange,
+    ],
+    '/organization/repository/editor': [
+      // REPOSITORY_LOCATION_CHANGE 判断了如果是当前 repo 的模块或接口切换就不重新获取
+      // 如果 repo 的 id 发生变化再进行 repo 的重新拉取
+      RepositoryAction.repositoryLocationChange,
+    ],
     '/repository/all': [RepositoryAction.fetchRepositoryList],
     '/repository/tester': [RepositoryAction.fetchRepository],
     '/repository/checker': [RepositoryAction.fetchRepository],
     '/organization/repository': [RepositoryAction.fetchRepositoryList],
-    '/organization/repository/editor': [RepositoryAction.fetchRepository],
   },
 }

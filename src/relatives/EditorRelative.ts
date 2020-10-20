@@ -5,14 +5,14 @@ import * as InterfaceEffects from './effects/interface'
 import * as PropertyEffects from './effects/property'
 
 export default {
-  reducers: {
-
-  },
+  reducers: {},
   sagas: {
     MODULE_ADD: ModuleEffects.addModule,
     MODULE_UPDATE: ModuleEffects.updateModule,
+    MODULE_MOVE: ModuleEffects.moveModule,
     MODULE_DELETE: ModuleEffects.deleteModule,
 
+    INTERFACE_FETCH: InterfaceEffects.fetchInterface,
     INTERFACE_ADD: InterfaceEffects.addInterface,
     INTERFACE_UPDATE: InterfaceEffects.updateInterface,
     INTERFACE_MOVE: InterfaceEffects.moveInterface,

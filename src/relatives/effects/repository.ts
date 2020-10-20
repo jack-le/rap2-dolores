@@ -1,6 +1,9 @@
-import { call, put } from 'redux-saga/effects'
+import { call, put, select } from 'redux-saga/effects'
 import * as RepositoryAction from '../../actions/repository'
 import RepositoryService from '../services/Repository'
+import { RootState } from 'actions/types'
+import { IFetchDefaultValsAction, fetchDefaultValsFailed, IUpdateDefaultValsAction } from '../../actions/repository'
+import { StoreStateRouterLocationURI } from 'family'
 
 //
 export function* fetchRepositoryCount(action: any) {
@@ -45,8 +48,9 @@ export function* updateRepository(action: any) {
     acceptedKeys.forEach(x => {
       params[x] = r[x]
     })
-    const repository = yield call(RepositoryService.updateRepository, params)
-    yield put(RepositoryAction.updateRepositorySucceeded(repository))
+    yield call(RepositoryService.updateRepository, params)
+    yield put(RepositoryAction.updateRepositorySucceeded(params))
+    yield put(RepositoryAction.fetchRepository({ id: params.id }))
     if (action.onResolved) { action.onResolved() }
   } catch (e) {
     yield put(RepositoryAction.updateRepositoryFailed(e.message))
@@ -66,13 +70,51 @@ export function* importRepository(action: any) {
     yield put(RepositoryAction.importRepositoryFailed(e.message))
   }
 }
+export function* importSwaggerRepository(action: any) {
+  try {
+    const res = yield call(RepositoryService.importSwaggerRepository, action.data)
+    if (res.isOk) {
+      yield put(RepositoryAction.importSwaggerRepositorySucceeded())
+      if (action.onResolved) { action.onResolved(res) }
+    } else {
+      throw new Error(res.message)
+    }
+  } catch (e) {
+    yield put(RepositoryAction.importSwaggerRepositoryFailed(e.message))
+  }
+}
 
 export function* fetchRepository(action: any) {
   try {
-    const count = yield call(RepositoryService.fetchRepository, action.repository || action.id)
-    yield put(RepositoryAction.fetchRepositorySucceeded(count))
+    const router = yield select((state: RootState) => state.router)
+    const uri = StoreStateRouterLocationURI(router)
+    const params = uri.search(true)
+    const repository = yield call(
+      RepositoryService.fetchRepository as any,
+      action.repository || action.id,
+      params.token,
+    )
+    yield put(RepositoryAction.fetchRepositorySucceeded(repository))
   } catch (e) {
     yield put(RepositoryAction.fetchRepositoryFailed(e.message))
+  }
+}
+
+export function* refreshRepository() {
+  // 刷新仓库和当前的接口
+  const repositoryId = yield select(
+    (state: RootState) => state.repository && state.repository.data && state.repository.data.id,
+  )
+  yield put(RepositoryAction.fetchRepository({id: repositoryId}))
+}
+
+export function* handleRepositoryLocationChange(action: any) {
+  const repositoryId = yield select(
+    (state: RootState) => state.repository && state.repository.data && state.repository.data.id,
+  )
+  if (Number(action.id) !== repositoryId) {
+    // 切换仓库
+    yield put(RepositoryAction.fetchRepository(action))
   }
 }
 
@@ -91,5 +133,23 @@ export function* fetchJoinedRepositoryList(action: any) {
     yield put(RepositoryAction.fetchJoinedRepositoryListSucceeded(repositories))
   } catch (e) {
     yield put(RepositoryAction.fetchJoinedRepositoryListFailed(e.message))
+  }
+}
+
+export function* fetchDefaultVals(action: IFetchDefaultValsAction) {
+  try {
+    const result = yield call(RepositoryService.fetchDefaultVals, action.payload)
+    yield put(RepositoryAction.fetchDefaultValsSucceeded(result))
+  } catch (e) {
+    yield put(fetchDefaultValsFailed({ message: e.message }))
+  }
+}
+
+export function* updateDefaultVals(action: IUpdateDefaultValsAction) {
+  try {
+    yield call(RepositoryService.updateDefaultVals, action.payload)
+    yield put(RepositoryAction.updateDefaultValsSucceeded())
+  } catch (e) {
+    yield put(RepositoryAction.updateDefaultValsFailed({ message: e.message }))
   }
 }

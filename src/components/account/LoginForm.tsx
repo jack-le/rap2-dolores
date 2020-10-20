@@ -15,6 +15,7 @@ import URI from 'urijs'
 import { showMessage, MSG_TYPE } from 'actions/common'
 import { push } from 'connected-react-router'
 import { getRouter } from 'selectors/router'
+import { Link } from '../../family'
 
 const { serve } = config
 
@@ -35,6 +36,10 @@ const useStyles = makeStyles(() => createStyles({
   ctl: {
     display: 'flex',
     justifyContent: 'space-between',
+  },
+  ctlend: {
+    display: 'flex',
+    justifyContent: 'flex-end',
   },
   captchaWrapper: {
     cursor: 'pointer',
@@ -75,7 +80,7 @@ export default function LoginForm() {
       dispatch(
         login({ email, password, captcha }, () => {
           const uri = URI(pathname + hash + search)
-          const original = uri.search(true).original
+          const original = uri.search(true).original as string
           if (original) {
             dispatch(push(decodeURIComponent(original)))
           } else {
@@ -161,8 +166,11 @@ export default function LoginForm() {
             </div>
             <div className={classes.buttonWrapper}>
               <Button variant="outlined" color="default" style={{ marginRight: 8 }} onClick={() => dispatch(push('/account/register'))}>注册</Button>
-              <Button variant="contained" color="primary" tabIndex={3} onClick={handleSubmit}>登陆</Button>
+              <Button variant="contained" color="primary" tabIndex={3} onClick={handleSubmit}>登录</Button>
             </div>
+          </ListItem>
+          <ListItem className={classes.ctlend}>
+            <Link to="#" onClick={() => dispatch(push('/account/findpwd'))} className="operation ">忘记密码？</Link>
           </ListItem>
         </List>
       </Paper>

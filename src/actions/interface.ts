@@ -3,12 +3,28 @@ export const addInterface = (itf: any, onResolved: any) => ({
   interface: itf,
   onResolved,
 })
+
 export const addInterfaceSucceeded = (payload: any) => ({
   type: 'INTERFACE_ADD_SUCCEEDED',
   payload,
 })
 export const addInterfaceFailed = (message: any) => ({
   type: 'INTERFACE_ADD_FAILED',
+  message,
+})
+
+export const fetchInterface = (id: number, onResolved: any) => ({
+  type: 'INTERFACE_FETCH',
+  id,
+  onResolved,
+})
+
+export const fetchInterfaceSucceeded = (payload: any) => ({
+  type: 'INTERFACE_FETCH_SUCCEEDED',
+  payload,
+})
+export const fetchInterfaceFailed = (message: any) => ({
+  type: 'INTERFACE_FETCH_FAILED',
   message,
 })
 
@@ -98,14 +114,17 @@ export const unlockInterfaceFailed = (message: any) => ({
   message,
 })
 
-export const sortInterfaceList = (ids: any, onResolved: any) => ({
+export const sortInterfaceList = (ids: any, moduleId: number, onResolved: any) => ({
   type: 'INTERFACE_LIST_SORT',
   ids,
+  moduleId,
   onResolved,
 })
-export const sortInterfaceListSucceeded = (count: any) => ({
+export const sortInterfaceListSucceeded = (count: any, ids: any, moduleId: number) => ({
   type: 'INTERFACE_LIST_SORT_SUCCEEDED',
   count,
+  ids,
+  moduleId,
 })
 export const sortInterfaceListFailed = (message: any) => ({
   type: 'INTERFACE_LIST_SORT_FAILED',

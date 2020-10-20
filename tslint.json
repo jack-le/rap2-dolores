@@ -5,6 +5,7 @@
     "tslint-react-hooks"
   ],
   "rules": {
+    "jsx-wrap-multiline": false,
     "arrow-parens": false,
     "arrow-return-shorthand": [
       false
@@ -88,17 +89,7 @@
       "ignore-bound-class-methods"
     ],
     "trailing-comma": [
-      true,
-      {
-        "singleline": "never",
-        "multiline": {
-          "objects": "always",
-          "arrays": "always",
-          "functions": "never",
-          "typeLiterals": "ignore"
-        },
-        "esSpecCompliant": true
-      }
+      true
     ],
     "triple-equals": [
       true,
@@ -122,6 +113,7 @@
     "no-unused-expression": false,
     "jsx-no-lambda": false,
     "no-shadowed-variable": false,
-    "react-hooks-nesting": "error"
+    "react-hooks-nesting": "error",
+    "no-empty": false
   }
 }

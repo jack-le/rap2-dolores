@@ -144,7 +144,6 @@ const Message = withStyles(styles)(
       const { timestamp, message, type } = messageInfo
       const Icon = getIcon(type)
       const className = this.getClassName(type)
-      console.log(messageInfo)
       return (
         <div>
           <Snackbar
@@ -154,7 +153,7 @@ const Message = withStyles(styles)(
               horizontal: 'left',
             }}
             open={this.state.open}
-            autoHideDuration={60000}
+            autoHideDuration={2000}
             onExited={this.handleExited}
             onClose={this.handleClose}
           >

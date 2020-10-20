@@ -2,18 +2,13 @@ import { takeLatest } from 'redux-saga/effects'
 import start from './start'
 import handleLocation from './handleLocation'
 import { createBrowserHistory as createHistory, History } from 'history'
-import {
-  createStore,
-  applyMiddleware,
-  combineReducers,
-  compose,
-  Store
-} from 'redux'
+import { createStore, applyMiddleware, combineReducers, compose, Store } from 'redux'
+import { apiMiddleware } from 'redux-api-middleware'
 import {
   routerMiddleware as createRouterMiddleware,
-  connectRouter
+  connectRouter,
+  LOCATION_CHANGE,
 } from 'connected-react-router'
-import loggerMiddleware from './loggerMiddleware'
 import createSagaMiddleware from 'redux-saga'
 import URI from 'urijs'
 
@@ -22,12 +17,11 @@ const _reducers: any = {} // { id/key: reducer }
 const _prefilters: any[] = []
 const _sagas: any = {} // { pattern: [sagas] }
 const _listeners: any = {} // { pathname: [listeners] }
-// let _routes: any
 
 const Family: {
-  store?: Store;
-  history?: History;
-  [k: string]: any;
+  store?: Store
+  history?: History
+  [k: string]: any
 } = {
   store: undefined,
   history: undefined,
@@ -93,13 +87,6 @@ const Family: {
     }
     return this
   },
-  // setRoutes(routes: any) {
-  //   if (!routes) {
-  //     return this
-  //   }
-  //   _routes = routes
-  //   return this
-  // },
   start(container: any) {
     _relatives.forEach(({ reducers = {}, sagas = {}, listeners = {} }: any) => {
       this.addReducers(reducers)
@@ -122,26 +109,27 @@ const Family: {
         })) ||
       compose
     const middlewares = logger
-      ? [loggerMiddleware, routerMiddleware, sagaMiddleware]
-      : [routerMiddleware, sagaMiddleware]
+      ? [routerMiddleware, apiMiddleware, sagaMiddleware] // 真的不需要这个logger d-  o-b|||
+      : [routerMiddleware, apiMiddleware, sagaMiddleware]
     const store = createStore<any, any, any, any>(
       combineReducers({ ..._reducers, router: connectRouter(history) }),
-      composeEnhancers(applyMiddleware(...middlewares))
+      composeEnhancers(applyMiddleware(...middlewares)),
     )
     // 初始化当前页所需的数据
     // @ts-ignore
     history.location.params = URI(history.location.search || '').search(true)
-    history.listen((location, action: any) =>
-      handleLocation({ store, listeners: _listeners, location, action })
-    )
-
     Family.store = store
     Family.history = history
+
+    // 给 location 添加解析好的 query 对象 params
+    history.listen((location) => {
+      // @ts-ignore
+      location.params = URI(location.search || '').search(true)
+    })
 
     /** init store end */
 
     function* rootSaga() {
-
       try {
         for (const prefilter of _prefilters) {
           yield* prefilter({ store })
@@ -149,15 +137,14 @@ const Family: {
       } catch (error) {
         return
       }
-
       // 在执行 prefilter 之后再开始渲染主UI
       start(container, { store, history })
 
-      // handleLocation({
-      //   store,
-      //   listeners: _listeners,
-      //   location: { pathname: '*' },
-      // })
+      // 监听 connected-react-router 地址变化的 action 而不是用 hisory.listen 以防重复监听
+      yield takeLatest(LOCATION_CHANGE, (action: any) => {
+        handleLocation({ store, listeners: _listeners, location: action.payload.location })
+      })
+
       handleLocation({
         store,
         listeners: _listeners,
@@ -169,10 +156,8 @@ const Family: {
           yield takeLatest(pattern, saga)
         }
       }
-
     }
     sagaMiddleware.run(rootSaga)
-
   },
 }
 

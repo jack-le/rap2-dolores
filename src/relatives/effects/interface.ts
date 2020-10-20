@@ -1,16 +1,39 @@
 import {
   call,
-  put
+  put,
+  select
 } from 'redux-saga/effects'
 import * as InterfaceAction from '../../actions/interface'
 import EditorService from '../services/Editor'
 import * as RepositoryAction from '../../actions/repository'
+import { RootState } from 'actions/types'
+import { replace } from 'connected-react-router'
+import { StoreStateRouterLocationURI } from 'family'
+
+export function* fetchInterface(action: any) {
+  try {
+    if (!action.id) {
+      return
+    }
+    const payload = yield call(EditorService.fetchInterface, action.id)
+    yield put(InterfaceAction.fetchInterfaceSucceeded(payload))
+    if (action.onResolved) {
+      action.onResolved(payload)
+    }
+  } catch (e) {
+    console.error(e.message)
+    yield put(InterfaceAction.fetchInterfaceFailed(e.message))
+    if (action.onRejected) {
+      action.onRejected()
+    }
+  }
+}
 
 export function* addInterface(action: any) {
   try {
     const payload = yield call(EditorService.addInterface, action.interface)
     yield put(InterfaceAction.addInterfaceSucceeded(payload))
-    if (action.onResolved) { action.onResolved() }
+    if (action.onResolved) { action.onResolved(payload.itf) }
   } catch (e) {
     console.error(e.message)
     yield put(InterfaceAction.addInterfaceFailed(e.message))
@@ -30,15 +53,11 @@ export function* updateInterface(action: any) {
 }
 export function* moveInterface(action: any) {
   try {
-    const {
-      repoId,
-      ...params
-    } = action.params
+    const params = action.params
+
     yield call(EditorService.moveInterface, params)
-    yield put(RepositoryAction.fetchRepository({
-      id: repoId,
-      repository: undefined,
-    }))
+    yield put(InterfaceAction.moveInterfaceSucceeded())
+    yield put(RepositoryAction.refreshRepository())
     action.onResolved && action.onResolved()
   } catch (e) {
     console.error(e.message)
@@ -52,6 +71,8 @@ export function* deleteInterface(action: any) {
     yield put(InterfaceAction.deleteInterfaceSucceeded({
       id: action.id,
     }))
+    const router = yield select((state: RootState) => state.router)
+    yield put(replace(StoreStateRouterLocationURI(router).removeQuery('itf').toString()))
     if (action.onResolved) { action.onResolved() }
   } catch (e) {
     console.error(e.message)
@@ -84,7 +105,7 @@ export function* unlockInterface(action: any) {
       yield put(InterfaceAction.unlockInterfaceSucceeded(action.id))
       if (action.onResolved) { action.onResolved() }
     } else {
-      alert(`发生错误：${res.errMsg}`)
+      window.alert(`发生错误：${res.errMsg}`)
     }
   } catch (e) {
     console.error(e.message)
@@ -94,7 +115,7 @@ export function* unlockInterface(action: any) {
 export function* sortInterfaceList(action: any) {
   try {
     const count = yield call(EditorService.sortInterfaceList, action.ids)
-    yield put(InterfaceAction.sortInterfaceListSucceeded(count))
+    yield put(InterfaceAction.sortInterfaceListSucceeded(count, action.ids, action.moduleId))
     if (action.onResolved) { action.onResolved() }
   } catch (e) {
     console.error(e.message)

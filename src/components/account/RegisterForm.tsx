@@ -21,11 +21,17 @@ type Props = {
 
 // 模拟数据
 const mockUser = () =>
-  Mock.mock({
-    fullname: '@CNAME',
-    email: '@email',
-    password: '@string(6)',
-  })
+  process.env.NODE_ENV === 'development'
+    ? Mock.mock({
+        fullname: '@CNAME',
+        email: '@email',
+        password: '@string(6)',
+      })
+    : {
+        fullname: '',
+        email: '',
+        password: '',
+      }
 
 // 展示组件
 class RegisterForm extends Component<Props, State> {
@@ -86,8 +92,10 @@ class RegisterForm extends Component<Props, State> {
   handleSubmit = (e: any) => {
     const { onAddUser } = this.props
     e.preventDefault()
-    onAddUser(this.state, () => {
-      window.location.href = '/'
+    onAddUser(this.state, (isOk: boolean) => {
+      if (isOk) {
+        window.location.href = '/'
+      }
     })
   };
 }

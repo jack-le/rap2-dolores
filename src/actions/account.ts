@@ -1,3 +1,9 @@
+import { THEME_TEMPLATE_KEY } from 'components/account/ThemeChangeOverlay'
+import { CACHE_KEY } from 'utils/consts'
+import { mergeRSAABase } from './rootAction'
+import { RSAA } from 'redux-api-middleware'
+import { serve } from 'relatives/services/constant'
+
 // 登陆
 export const login = (user: any, onResolved: any) => ({ type: 'USER_LOGIN', user, onResolved })
 export const loginSucceeded = (user: any) => ({ type: 'USER_LOGIN_SUCCEEDED', user })
@@ -57,3 +63,128 @@ export const fetchLogList = (
 ) => ({ type: 'LOG_LIST_FETCH', cursor, limit })
 export const fetchLogListSucceeded = (logs: any) => ({ type: 'LOG_LIST_FETCH_SUCCEEDED', logs })
 export const fetchLogListFailed = (message: any) => ({ type: 'LOG_LIST_FETCH_FAILED', message })
+
+// 发送重设密码邮件
+export const findpwd = (user: any, onResolved: any) => ({ type: 'USER_FINDPWD', user, onResolved })
+export const findpwdSucceeded = () => ({ type: 'USER_FINDPWD_SUCCEEDED' })
+export const findpwdFailed = (message: any) => ({ type: 'USER_FINDPWD_FAILED', message })
+
+// 用户通过邮件重设密码
+export const resetpwd = (user: any, onResolved: any) => ({ type: 'USER_RESETPWD', user, onResolved })
+export const resetpwdSucceeded = () => ({ type: 'USER_RESETPWD_SUCCEEDED' })
+export const resetpwdFailed = (message: any) => ({ type: 'USER_RESETPWD_FAILED', message })
+export type CHANGE_THEME = 'CHANGE_THEME'
+export const CHANGE_THEME: CHANGE_THEME = 'CHANGE_THEME'
+
+export const changeTheme = (themeId: THEME_TEMPLATE_KEY) => ({
+  type: CHANGE_THEME,
+  payload: themeId,
+})
+
+export type UPDATE_USER_SETTING_REQUEST = 'UPDATE_USER_SETTING_REQUEST'
+export const UPDATE_USER_SETTING_REQUEST: UPDATE_USER_SETTING_REQUEST = 'UPDATE_USER_SETTING_REQUEST'
+
+export type UPDATE_USER_SETTING_SUCCESS = 'UPDATE_USER_SETTING_SUCCESS'
+export const UPDATE_USER_SETTING_SUCCESS: UPDATE_USER_SETTING_SUCCESS = 'UPDATE_USER_SETTING_SUCCESS'
+
+export type UPDATE_USER_SETTING_FAILURE = 'UPDATE_USER_SETTING_FAILURE'
+export const UPDATE_USER_SETTING_FAILURE: UPDATE_USER_SETTING_FAILURE = 'UPDATE_USER_SETTING_FAILURE'
+
+export function updateUserSetting(key: CACHE_KEY, value: string) {
+  return {
+    [RSAA]: mergeRSAABase({
+      endpoint: `${serve}/account/updateUserSetting/${key}`,
+      method: 'POST',
+      body: JSON.stringify(value ? { value } : {}),
+      types: [UPDATE_USER_SETTING_REQUEST, UPDATE_USER_SETTING_SUCCESS, UPDATE_USER_SETTING_SUCCESS],
+    }),
+  }
+}
+
+export type DO_UPDATE_USER_SETTING = 'DO_UPDATE_USER_SETTING'
+export const DO_UPDATE_USER_SETTING = 'DO_UPDATE_USER_SETTING'
+
+export const doUpdateUserSetting = (key: CACHE_KEY, value: string, cb: TCB) => ({
+  type: DO_UPDATE_USER_SETTING,
+  payload: {
+    cb,
+    key,
+    value,
+  },
+})
+
+export interface DoUpdateUserSettingAction {
+  type: DO_UPDATE_USER_SETTING
+  payload: {
+    cb: TCB
+    key: CACHE_KEY
+    value: string
+  }
+}
+
+export type FETCH_USER_SETTINGS_REQUEST = 'FETCH_USER_SETTINGS_REQUEST'
+export const FETCH_USER_SETTINGS_REQUEST: FETCH_USER_SETTINGS_REQUEST = 'FETCH_USER_SETTINGS_REQUEST'
+
+export type FETCH_USER_SETTINGS_SUCCESS = 'FETCH_USER_SETTINGS_SUCCESS'
+export const FETCH_USER_SETTINGS_SUCCESS: FETCH_USER_SETTINGS_SUCCESS = 'FETCH_USER_SETTINGS_SUCCESS'
+
+export type FETCH_USER_SETTINGS_FAILURE = 'FETCH_USER_SETTINGS_FAILURE'
+export const FETCH_USER_SETTINGS_FAILURE: FETCH_USER_SETTINGS_FAILURE = 'FETCH_USER_SETTINGS_FAILURE'
+
+export function fetchUserSettings(keys: CACHE_KEY[]) {
+  return {
+    [RSAA]: mergeRSAABase({
+      endpoint: `${serve}/account/fetchUserSettings`,
+      method: 'POST',
+      body: JSON.stringify({ keys }),
+      types: [FETCH_USER_SETTINGS_REQUEST, FETCH_USER_SETTINGS_SUCCESS, FETCH_USER_SETTINGS_SUCCESS],
+    }),
+  }
+}
+
+export type DO_FETCH_USER_SETTINGS = 'DO_FETCH_USER_SETTINGS'
+export const DO_FETCH_USER_SETTINGS: DO_FETCH_USER_SETTINGS = 'DO_FETCH_USER_SETTINGS'
+
+export function doFetchUserSettings(keys: CACHE_KEY[], cb?: (isOk: boolean, payload?: any) => void): DoFetchUserSettingsAction {
+  return {
+    type: DO_FETCH_USER_SETTINGS,
+    payload: { keys, cb },
+  }
+}
+
+export interface DoFetchUserSettingsAction {
+  type: DO_FETCH_USER_SETTINGS
+  payload: {
+    keys: CACHE_KEY[]
+    cb?: (isOk: boolean, payload?: any) => void
+  }
+}
+
+export type UPDATE_ACCOUNT_REQUEST = 'UPDATE_ACCOUNT_REQUEST'
+export const UPDATE_ACCOUNT_REQUEST: UPDATE_ACCOUNT_REQUEST = 'UPDATE_ACCOUNT_REQUEST'
+
+export type UPDATE_ACCOUNT_SUCCESS = 'UPDATE_ACCOUNT_SUCCESS'
+export const UPDATE_ACCOUNT_SUCCESS: UPDATE_ACCOUNT_SUCCESS = 'UPDATE_ACCOUNT_SUCCESS'
+
+export type UPDATE_ACCOUNT_FAILURE = 'UPDATE_ACCOUNT_FAILURE'
+export const UPDATE_ACCOUNT_FAILURE: UPDATE_ACCOUNT_FAILURE = 'UPDATE_ACCOUNT_FAILURE'
+
+export const updateAccount = (payload: { fullname?: string, password?: string}) => ({
+  [RSAA]: mergeRSAABase({
+    endpoint: `${serve}/account/updateAccount`,
+    method: 'POST',
+    body: JSON.stringify(payload),
+    types: [UPDATE_ACCOUNT_REQUEST, UPDATE_ACCOUNT_SUCCESS, UPDATE_ACCOUNT_FAILURE],
+  }),
+})
+
+export type DO_UPDATE_ACCOUNT = 'DO_UPDATE_ACCOUNT'
+export const DO_UPDATE_ACCOUNT = 'DO_UPDATE_ACCOUNT'
+
+export const doUpdateAccount = (params: {fullname?: string, password?: string}, cb: TCB) => ({
+  type: DO_UPDATE_ACCOUNT,
+  payload: {
+    params,
+    cb,
+  },
+})

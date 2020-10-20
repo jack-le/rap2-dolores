@@ -5,9 +5,9 @@ import { FORM, YUP_MSG } from '../../family/UIConst'
 import { Formik, Field, Form } from 'formik'
 import { TextField } from 'formik-material-ui'
 import * as Yup from 'yup'
-import { Button, Theme, Dialog, Slide, DialogContent, DialogTitle } from '@material-ui/core'
+import { Button, Theme, Dialog, DialogContent, DialogTitle } from '@material-ui/core'
 import { makeStyles } from '@material-ui/styles'
-import { TransitionProps } from '@material-ui/core/transitions/transition'
+import { SlideUp } from 'components/common/Transition'
 import { Organization, RootState } from '../../actions/types'
 import UserList from '../common/UserList'
 import AccountService from '../../relatives/services/Account'
@@ -57,10 +57,6 @@ const FORM_STATE_INIT: Organization = {
   visibility: false,
 }
 
-const Transition = React.forwardRef<unknown, TransitionProps>((props, ref) => {
-  return <Slide direction="up" ref={ref} {...props} />
-})
-
 interface Props {
   open: boolean
   onClose: (isOk?: boolean) => void
@@ -76,8 +72,8 @@ function OrganizationForm(props: Props) {
   return (
     <Dialog
       open={open}
-      onClose={() => onClose()}
-      TransitionComponent={Transition}
+      onClose={(_event, reason) => (reason !== 'backdropClick' && onClose())}
+      TransitionComponent={SlideUp}
     >
       <DialogTitle>新建团队</DialogTitle>
       <DialogContent dividers={true}>
@@ -102,13 +98,18 @@ function OrganizationForm(props: Props) {
               }))
             }}
             render={({ isSubmitting, setFieldValue, values }) => {
-              function loadUserOptions(input: string): Promise<Array<{ label: string, value: number }>> {
+              function loadUserOptions(input: string): Promise<{ label: string, value: number }[]> {
                 return new Promise(async (resolve) => {
                   const users = await AccountService.fetchUserList({ name: input })
                   const options = _.differenceWith(users.data, values.members || [], _.isEqual)
                   resolve(options.map(x => ({ label: `${x.fullname} ${x.empId || x.email}`, value: x.id })))
                 })
               }
+              const newOwner = values.newOwner
+                ? [{ label: values.newOwner.fullname, value: values.newOwner.id }]
+                : values.owner
+                ? [{ label: values.owner.fullname, value: values.owner.id }]
+                : []
               return (
                 <Form>
                   <div className="rmodal-body">
@@ -118,9 +119,11 @@ function OrganizationForm(props: Props) {
                         {values.owner && (values.owner.id === auth.id)
                           ? <UserList
                             isMulti={false}
-                            value={values.newOwner ? [{ label: values.newOwner.fullname, value: values.newOwner.id }] : []}
+                            value={newOwner}
                             loadOptions={loadUserOptions}
-                            onChange={(users: any) => setFieldValue('newOwner', users[0])}
+                            onChange={(users: any) => {
+                            setFieldValue('newOwner', users[0])
+                          }}
                           />
                           : <div className="pt7 pl9">{values.owner!.fullname}</div>
                         }
@@ -151,7 +154,7 @@ function OrganizationForm(props: Props) {
                       />
                     </div>
                     <div className={classes.formItem}>
-                      <div className={classes.formTitle}>项目成员</div>
+                      <div className={classes.formTitle}>团队成员</div>
                       <UserList
                         isMulti={true}
                         loadOptions={loadUserOptions}
